@@ -1,0 +1,60 @@
+name: Auto Commit
+
+on:
+  push:
+    branches:
+      - main  # Change to 'master' if that's your default branch
+      
+  schedule:
+  - cron: "30 8,13,18 * * 1-6"  # 8:30am, 1:30pm, and 6:30pm Mon-Sat (excludes Sunday)
+
+jobs:
+  auto_commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3      
+        with:
+         persist-credentials: false
+         fetch-depth: 0
+
+      - name: Generate Last Update Timestamp
+        run: |
+          d=`date '+%Y-%m-%dT%H:%M:%SZ'`
+          echo $d > LAST_UPDATED
+          
+      - name: Configure Git
+        run: |
+          git config --local user.email "levgiorg@gmail.com
+          git config --local user.name "levgiorg"
+          git add -A
+          
+          # Array of creative commit messages
+          arr[0]="✨ feat: automated contribution to keep the streak alive"
+          arr[1]="🌱 chore: nurturing my GitHub garden"
+          arr[2]="📊 stats: keeping my contribution graph green"
+          arr[3]="🤖 bot: beep boop, automated commit"
+          arr[4]="🚀 update: launching another day of contributions"
+          arr[5]="🔄 sync: synchronizing with the GitHub universe"
+          arr[6]="📝 docs: documenting another productive day"
+          arr[7]="🎯 goal: hitting my daily commit target"
+          arr[8]="🧩 add: another piece to my GitHub puzzle"
+          arr[9]="⏱️ time: marking the passage of another dev day"
+          arr[10]="🌿 branch: growing my GitHub forest"
+          arr[11]="🤓 code: just wrote some excellent invisible code"
+          arr[12]="🎮 achievement: daily GitHub contribution unlocked"
+          arr[13]="☕ brew: fresh pot of commits coming up"
+          arr[14]="🏆 win: another successful day in the books"
+          arr[15]="📈 growth: steady progress on the contribution chart"
+          
+          # Select a random message
+          rand=$[$RANDOM % ${#arr[@]}]
+          
+          # Create commit with the selected message
+          git commit -m "${arr[$rand]}"
+          
+      - name: Push Changes
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
