@@ -1,12 +1,11 @@
 name: Auto Commit
-
 on:
   push:
     branches:
-      - main  # Change to 'master' if that's your default branch
+      - main
       
   schedule:
-  - cron: "30 8,13,18 * * 1-6"  # 8:30am, 1:30pm, and 6:30pm Mon-Sat (excludes Sunday)
+  - cron: "*/30 7-23 * * 1-6"  # Run every 30 minutes between 7am-11pm on Mon-Sat
 
 jobs:
   auto_commit:
@@ -18,12 +17,58 @@ jobs:
          persist-credentials: false
          fetch-depth: 0
 
+      # Simpler approach that will actually work
+      - name: Decide whether to commit
+        id: should_commit
+        run: |
+          # Generate a random number between 1-100
+          RAND=$((1 + RANDOM % 100))
+          
+          # Hour of day affects probability (simulates work hours)
+          HOUR=$(date +"%H")
+          
+          # Set different probabilities based on time of day
+          if [ $HOUR -ge 9 ] && [ $HOUR -le 17 ]; then
+            # Working hours - higher probability (50%)
+            THRESHOLD=50
+          elif [ $HOUR -ge 7 ] && [ $HOUR -le 23 ]; then
+            # Early morning or evening - medium probability (25%)
+            THRESHOLD=25
+          else
+            # Late night - low probability (10%)
+            THRESHOLD=10
+          fi
+          
+          # Decide whether to commit
+          if [ $RAND -le $THRESHOLD ]; then
+            echo "Will make a commit (probability: $THRESHOLD%, random: $RAND)"
+            echo "make_commit=true" >> $GITHUB_OUTPUT
+          else
+            echo "Will skip this run (probability: $THRESHOLD%, random: $RAND)"
+            echo "make_commit=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Generate Last Update Timestamp
+        if: steps.should_commit.outputs.make_commit == 'true'
         run: |
           d=`date '+%Y-%m-%dT%H:%M:%SZ'`
           echo $d > LAST_UPDATED
           
+          # Create or update activity log with random content
+          if [ ! -f activity_log.md ]; then
+            echo "# Activity Log" > activity_log.md
+            echo "" >> activity_log.md
+          fi
+          
+          # Possible activities for more variety
+          ACTIVITIES=("Updated documentation" "Fixed typo" "Added note" "Updated timestamp" "Refreshed data" "Recorded progress" "Tracked changes" "Documented work" "Logged activity" "Made improvement" "Refactored code" "Optimized workflow" "Enhanced feature" "Streamlined process")
+          ACTIVITY=${ACTIVITIES[$RANDOM % ${#ACTIVITIES[@]}]}
+          
+          # Add a note with different text each time
+          echo "- $ACTIVITY at $d" >> activity_log.md
+          
       - name: Configure Git
+        if: steps.should_commit.outputs.make_commit == 'true'
         run: |
           git config --local user.email "levgiorg@gmail.com"
           git config --local user.name "levgiorg"
@@ -46,6 +91,10 @@ jobs:
           arr[13]="☕ brew: fresh pot of commits coming up"
           arr[14]="🏆 win: another successful day in the books"
           arr[15]="📈 growth: steady progress on the contribution chart"
+          arr[16]="📋 task: checked another item off the list"
+          arr[17]="🔧 chore: routine maintenance"
+          arr[18]="📌 mark: logging daily progress"
+          arr[19]="🔄 sync: keeping things up to date"
           
           # Select a random message
           rand=$[$RANDOM % ${#arr[@]}]
@@ -54,6 +103,7 @@ jobs:
           git commit -m "${arr[$rand]}"
           
       - name: Push Changes
+        if: steps.should_commit.outputs.make_commit == 'true'
         uses: ad-m/github-push-action@v0.6.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
